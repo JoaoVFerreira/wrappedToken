@@ -3,10 +3,12 @@ pragma solidity ^0.8.27;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./IOracle.sol";
+import "./IOracleConsumer.sol";
 
 contract WeiUsdOracle is IOracle, Ownable {
   uint private lastRatio = 0;
   uint public lastUpdate = 0;
+  address[] public subscribers;
 
   constructor (uint ethPriceInPenny) Ownable() {
     uint weisPerPenny = calculateWeiRatio(ethPriceInPenny);
@@ -14,7 +16,7 @@ contract WeiUsdOracle is IOracle, Ownable {
     lastUpdate = block.timestamp;
   }
 
-  function calculateWeiRatio (uint ethPriceInPenny) internal pure returns (uint) {
+  function calculateWeiRatio(uint ethPriceInPenny) internal pure returns (uint) {
     return (10 ** 18) / ethPriceInPenny;
   }
  
@@ -29,5 +31,41 @@ contract WeiUsdOracle is IOracle, Ownable {
 
     lastRatio = weisPerPenny;
     lastUpdate = block.timestamp;
+
+    for (uint i = 0; i < subscribers.length; ++i) {
+      if (subscribers[i] != address(0)) {
+        IOracleConsumer(subscribers[i]).update(weisPerPenny);
+      }
+    }
+
+    if (subscribers.length > 0) {
+      emit AllUpdated(subscribers);
+    }
+  }
+
+  function subscribe(address subscriber) external onlyOwner {
+    require(subscriber != address(0), "Subscriber cannot be zero.");
+    emit Subscribed(subscriber);
+    for (uint i = 0; i < subscribers.length; ++i) {
+      if (subscribers[i] == address(0)) {
+        subscribers[i] = subscriber;
+        return;
+      } else if (subscribers[i] == subscriber) {
+        return;
+      }
+    }
+
+    subscribers.push(subscriber);
+  } 
+
+  function unsubscribe(address subscriber) external onlyOwner {
+    require(subscriber != address(0), "Subscriber cannot be zero.");
+    for (uint i = 0; i < subscribers.length; ++i) {
+      if (subscribers[i] == subscriber) {
+        delete subscribers[i];
+        emit Unsubscribed(subscriber);
+        return;
+      }
+    }
   }
 }
