@@ -10,7 +10,7 @@ contract WeiUsdOracle is IOracle, Ownable {
   uint public lastUpdate = 0;
   address[] public subscribers;
 
-  constructor (uint ethPriceInPenny) Ownable() {
+  constructor (uint ethPriceInPenny) Ownable(msg.sender) {
     uint weisPerPenny = calculateWeiRatio(ethPriceInPenny);
     lastRatio = weisPerPenny;
     lastUpdate = block.timestamp;
@@ -56,7 +56,7 @@ contract WeiUsdOracle is IOracle, Ownable {
     }
 
     subscribers.push(subscriber);
-  } 
+  }
 
   function unsubscribe(address subscriber) external onlyOwner {
     require(subscriber != address(0), "Subscriber cannot be zero.");
