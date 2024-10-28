@@ -28,6 +28,15 @@ contract Rebase is IOracleConsumer, Ownable, Pausable {
     lastUpdate = block.timestamp;
   }
 
+  function getParity(uint weisPerPenny) public view returns (uint) {
+    if (weisPerPenny == 0) {
+      weisPerPenny = IOracle(oracle).getWeiRatio();
+    }
+    uint tokensSupply = (IStableCoin(stableCoin).totalSupply() * 100);
+    uint ehtContractBalance = (address(this).balance / weisPerPenny);
+    return tokensSupply / ehtContractBalance;
+  }
+
   function setUpdateTolerance(uint newToleranceInSeconds) external onlyOwner {
     require(newToleranceInSeconds > 0, "Tolerance in seconds cannot be zero.");
     updateTolerance = newToleranceInSeconds;
@@ -41,8 +50,36 @@ contract Rebase is IOracleConsumer, Ownable, Pausable {
   function update(uint weisPerPenny) external {
     require(msg.sender == oracle, "Only the oracle can make this call.");
     uint oldSuppy = IStableCoin(stableCoin).totalSupply();
-    lastUpdate = block.timestamp;
-    emit Updated(block.timestamp, 1, 1);
+    uint newSupply = adjustSupply(weisPerPenny);
+    
+    if (newSupply != 0) {
+      lastUpdate = block.timestamp;  
+      emit Updated(lastUpdate, oldSuppy, newSupply);
+    }
+  }
+
+  function adjustSupply(uint weisPerPenny) internal returns (uint) {
+    uint parity = getParity(weisPerPenny);
+    if (parity == 0) {
+      _pause();
+      return 0;
+    }
+
+    IStableCoin algoDollar = IStableCoin(stableCoin);
+    uint totalSupply = algoDollar.totalSupply();
+
+    if (parity == 100) {
+      return totalSupply;
+    }
+
+    if (parity > 100) {
+      uint amounToBurn = (totalSupply * (parity - 100) / 100);
+      algoDollar.burn(owner(), amounToBurn);
+    } else if (parity < 100) {
+      uint amounToMint = (totalSupply * (100 - parity) / 100);
+      algoDollar.mint(owner(), amounToMint);
+    }
+    return algoDollar.totalSupply();
   }
 
   function pause() public onlyOwner {
