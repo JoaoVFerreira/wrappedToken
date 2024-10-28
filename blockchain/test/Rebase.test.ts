@@ -93,4 +93,91 @@ describe("Rebase Tests", function () {
     await expect(instance.withdrawUsda(USDA_2K))
       .to.be.rejectedWith('Insufficient USDA balance.')
   });
+
+  it('Should throw when calling the function that only oracle can do it', async () => {
+    // ARRANGE
+    const { rebase, otherAccount } = await loadFixture(deployFixture);
+    const instance = rebase.connect(otherAccount);
+
+    // ACT && ASSERT
+    await expect(instance.update(USDA_2K))
+      .to.be.revertedWith('Only the oracle can make this call.')
+  })
+
+  it('Should get parity', async () => {
+    // ARRANGE
+    const { rebase, otherAccount } = await loadFixture(deployFixture);
+    const instance = rebase.connect(otherAccount);
+
+    // ACT
+    await instance.deposit({ value: ONE_ETH })
+    const parity = await instance.getParity(0);
+    
+    // ASSERT
+    expect(parity).to.equal('100')
+  })
+
+  it('Should throw when setting new tolerance with zero', async () => {
+    // ARRANGE
+    const { rebase, otherAccount } = await loadFixture(deployFixture);
+    const instance = rebase.connect(otherAccount);
+
+    // ACT && ASSERT
+    await expect(instance.setUpdateTolerance(0))
+      .to.be.revertedWithCustomError(rebase, 'OwnableUnauthorizedAccount')
+  })
+
+  it('Should throw when setting new tolerance with zero but with owner contract', async () => {
+    // ARRANGE
+    const { rebase } = await loadFixture(deployFixture);
+
+    // ACT && ASSERT
+    await expect(rebase.setUpdateTolerance(0))
+      .to.be.revertedWith('Tolerance in seconds cannot be zero.')
+  })
+
+  it('Should throw when setting a address zero to the new oracle', async () => {
+    // ARRANGE
+    const { rebase } = await loadFixture(deployFixture);
+
+    // ACT && ASSERT
+    await expect(rebase.setOracle(ethers.ZeroAddress))
+      .to.be.revertedWith('Oracle address cannot be zero')
+  })
+
+  it('Should adjust supply down', async () => {
+    // ARRANGE
+    const { rebase, otherAccount, oracle, algoDollar } = await loadFixture(deployFixture);
+    await oracle.subscribe(rebase.target);
+    const instance = rebase.connect(otherAccount);
+    await instance.deposit({ value: ONE_ETH });
+
+    // ACT
+    const oldSupply = await algoDollar.totalSupply();
+    await oracle.setEthPrice(USDA_2K * 0.95)
+    const newSupply = await algoDollar.totalSupply();
+    const parity = await rebase.getParity(0);
+
+    // ASSERT
+    expect(newSupply).to.be.equal(Number(oldSupply) * 0.95);
+    expect(parity).to.equal('100');
+  })
+
+  it('Should adjust supply up', async () => {
+    // ARRANGE
+    const { rebase, otherAccount, oracle, algoDollar } = await loadFixture(deployFixture);
+    await oracle.subscribe(rebase.target);
+    const instance = rebase.connect(otherAccount);
+    await instance.deposit({ value: ONE_ETH });
+
+    // ACT
+    const oldSupply = await algoDollar.totalSupply();
+    await oracle.setEthPrice(USDA_2K * 1.05)
+    const newSupply = await algoDollar.totalSupply();
+    const parity = await rebase.getParity(0);
+
+    // ASSERT
+    expect(newSupply).to.be.equal(Number(oldSupply) * 1.05);
+    expect(parity).to.equal('100');
+  })
 });
