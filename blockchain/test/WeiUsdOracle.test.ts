@@ -4,13 +4,22 @@ import { ethers } from "hardhat";
 
 describe("Oracle Tests", function () {
   const USDA_2K = 200000;
-
+  const ONE_ETH = ethers.parseEther("1");
+  
   async function deployOneYearLockFixture() {
+    const AlgoDollar = await ethers.getContractFactory("AlgoDollar");
+    const algoDollar = await AlgoDollar.deploy();
+
     const WeiUsdOracle = await ethers.getContractFactory("WeiUsdOracle");
     const oracle = await WeiUsdOracle.deploy(USDA_2K);
 
     const Rebase = await ethers.getContractFactory("Rebase");
-    const rebase = await Rebase.deploy();
+    const rebase = await Rebase.deploy(oracle.target, algoDollar.target);
+
+    await algoDollar.setRebase(rebase.target);
+    
+    const weisPerPenny = await oracle.getWeiRatio();
+    await rebase.initialize(weisPerPenny, { value: ONE_ETH });
 
     return { oracle, rebase };
   }
