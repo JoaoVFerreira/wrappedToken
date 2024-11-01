@@ -1,0 +1,21 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "Monitor any token and give data to the oracle blockchain",
+  "main": "index.js",
+  "scripts": {
+    "start": "npx ts-node index"
+  },
+  "keywords": [],
+  "author": "John",
+  "license": "ISC",
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "ethers": "^6.13.4",
+    "node-binance-api": "^0.13.1"
+  }
+}
