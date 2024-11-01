@@ -1,7 +1,7 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import { ethers } from "hardhat";
 
-const INITIAL_ETH_PRICE = 67;//$0.67
+const INITIAL_ETH_PRICE = 5923500; //$592,35
 const INITIAL_ETH_DEPOSIT = ethers.parseEther("1");
 
 const AlgoDollarModule = buildModule("AlgoDollarModule", (m) => {

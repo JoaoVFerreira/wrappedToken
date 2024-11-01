@@ -14,8 +14,8 @@ const config: HardhatUserConfig = {
     }
   },
   networks: {
-    bsctest: {
-      url: process.env.BSC_URL,
+    polygontestnet: {
+      url: process.env.RPC_URL,
       chainId: parseInt(`${process.env.CHAIN_ID}`),
       accounts: {
         mnemonic: process.env.SECRET

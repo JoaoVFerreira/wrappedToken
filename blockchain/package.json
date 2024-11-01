@@ -8,7 +8,7 @@
     "compile": "npx hardhat compile",
     "coverage": "npx hardhat coverage",
     "dev": "npx hardhat node",
-    "deploy": "npx hardhat run ignition/deploy.ts --network bsctest"
+    "deploy": "npx hardhat run scripts/deploy.ts --network polygontestnet"
   },
   "keywords": [],
   "author": "John",
